@@ -1,0 +1,161 @@
+import random
+import tkinter as tk
+from tkinter import messagebox
+
+def RestartGame():
+    global board, CurrentPlayer
+    board = ["-" for _ in range(9)]
+    for button in buttons:
+        button.config(text="-")
+
+def GameOver(winner=None):
+    message = f"{winner} wins!" if winner else "It's a tie!"
+    if messagebox.askyesno("Game Over", f"{message}\nDo you want to play again?"):
+        RestartGame()
+        open_symbol_selection()
+    else:
+        window.quit()
+
+def MakeMove(index):
+    global CurrentPlayer
+
+    if board[index] == "-":
+        board[index] = CurrentPlayer
+        buttons[index].config(text=CurrentPlayer)
+
+        if CheckWinner():
+            GameOver(CurrentPlayer)
+        elif CheckTie():
+            GameOver()
+        else:
+            if not isAgainstComputer:
+                if CurrentPlayer == "X":
+                    CurrentPlayer = "O"
+                else:
+                    CurrentPlayer= "X"
+
+            elif isAgainstComputer:
+                if CurrentPlayer == "X":
+                    CurrentPlayer = "O"
+                else:
+                    CurrentPlayer = "X"
+                ComputerMove()
+
+
+def ComputerMove():
+    global board, CurrentPlayer
+
+    # Check for winning moves
+    winning_move = find_winning_move(board, CurrentPlayer)
+    if winning_move is not None:
+        move = winning_move
+    else:
+        # Check for blocking opponent's winning moves
+        opponent = "O" if CurrentPlayer == "X" else "X"
+        blocking_move = find_winning_move(board, opponent)
+        if blocking_move is not None:
+            move = blocking_move
+        else:
+            # If no winning or blocking moves, choose a random move
+            AvailableSpots = [i for i in range(9) if board[i] == "-"]
+            move = random.choice(AvailableSpots)
+
+    board[move] = CurrentPlayer
+    buttons[move].config(text=CurrentPlayer)
+
+    if CheckWinner():
+        GameOver(CurrentPlayer)
+    elif CheckTie():
+        GameOver()
+
+    CurrentPlayer = "O" if CurrentPlayer == "X" else "X"
+
+def find_winning_move(board, player):
+    """Find a winning move for the specified player."""
+    for i in range(9):
+        if board[i] == "-":
+            # Try making the move and check for a win
+            board[i] = player
+            if CheckWinner():
+                # Found a winning move, revert the change and return the move
+                board[i] = "-"
+                return i
+            else:
+                # No win, revert the change
+                board[i] = "-"
+    return None
+
+def CheckWinner():
+    WinCondition = [
+        (0, 1, 2), (3, 4, 5), (6, 7, 8),  #rows
+        (0, 3, 6), (1, 4, 7), (2, 5, 8),  #columns
+        (0, 4, 8), (2, 4, 6)  #diagonals
+    ]
+    for condition in WinCondition:
+        if board[condition[0]] == board[condition[1]] == board[condition[2]] != "-":
+            return True
+    return False
+
+def CheckTie():
+    return "-" not in board
+
+def start_game(is_computer):
+    global isAgainstComputer
+    isAgainstComputer = is_computer
+    menu_frame.pack_forget()
+    open_symbol_selection()
+
+def open_symbol_selection():
+    symbol_window = tk.Toplevel(window)
+    symbol_window.title("Choose Symbol")
+    symbol_window.geometry("500x400")
+    symbol_frame = tk.Frame(symbol_window)
+    symbol_frame.pack(expand=True, fill="both")
+    symbol_label = tk.Label(symbol_frame, text="Choose X or O:",font=("Helvetica", 30, "bold"),fg="black")
+    symbol_label.pack(expand=True, fill="both")
+
+    x_button = tk.Button(symbol_frame, text="X", command=lambda: initialize_game("X", symbol_window),fg="green",font=("Helvetica", 20, "bold"),bg="lightgray", width=10, height=5)
+    x_button.pack(expand=True, fill="both")
+
+    o_button = tk.Button(symbol_frame, text="O", command=lambda: initialize_game("O", symbol_window),fg="green",font=("Helvetica", 20, "bold"),bg="lightgray", width=10, height=5)
+    o_button.pack(expand=True, fill="both")
+    r1= tk.ch
+
+def initialize_game(selected_symbol, symbol_window):
+    global CurrentPlayer
+    symbol_window.destroy()
+
+    menu_frame.pack_forget()
+    game_frame.pack()
+    CurrentPlayer = selected_symbol
+
+
+window = tk.Tk()
+window.title("Tic-Tac-Toe")
+
+board = ["-" for _ in range(9)]
+CurrentPlayer = "-"
+
+
+
+menu_frame = tk.Frame(window)
+
+
+menu_frame.pack()
+
+vs_computer_button = tk.Button(menu_frame, text="Player vs Computer", command=lambda: start_game(True),fg="green",font=("Helvetica", 20, "bold"),bg="lightgray")
+vs_computer_button.pack(fill="both")
+
+vs_player_button = tk.Button(menu_frame, text="Player vs Player", command=lambda: start_game(False),fg="green",font=("Helvetica", 20, "bold"),bg="lightgray")
+vs_player_button.pack(fill="both")
+
+game_frame = tk.Frame(window)
+
+buttons = []
+for i in range(9):
+    button = tk.Button(game_frame, text="-", width=10, height=5,bg="lightgray")
+    button.configure(command=lambda index=i: MakeMove(index))
+    button.grid(row=i // 3, column=i % 3)
+    buttons.append(button)
+
+window.mainloop()
